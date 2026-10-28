@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreCandidate, valuationBand, validateObservation } from './scoring.js';
+import { scoreCandidate, valuationBand, validateObservation, classifyFreshness } from './scoring.js';
 
 test('score is deterministic and weighted', () => {
   const result = scoreCandidate({ valuation: 80, momentum: 70, quality: 90, risk: 60 });
@@ -50,4 +50,22 @@ test('observation validator flags future timestamps', () => {
     validateObservation({ symbol: 'ABC', price: 10, currency: 'AUD', source: 'fixture', asOf: future }),
     ['Observation timestamp is in the future']
   );
+});
+
+test('classifies stale observations without pretending they are live', () => {
+  const now = Date.parse('2026-10-28T12:00:00.000Z');
+  const result = classifyFreshness({ asOf: '2026-10-28T10:00:00.000Z' }, { now, maxAgeMs: 30 * 60_000 });
+  assert.equal(result.status, 'stale');
+  assert.equal(result.ageMs, 2 * 60 * 60_000);
+});
+
+test('freshness classification still requires feed entitlement verification', () => {
+  const now = Date.parse('2026-10-28T12:00:00.000Z');
+  const result = classifyFreshness({ asOf: '2026-10-28T11:59:00.000Z' }, { now, maxAgeMs: 5 * 60_000 });
+  assert.equal(result.status, 'within-threshold');
+  assert.match(result.reason, /entitlement still must be verified/);
+});
+
+test('freshness classification rejects invalid thresholds', () => {
+  assert.throws(() => classifyFreshness({ asOf: new Date().toISOString() }, { maxAgeMs: -1 }), /non-negative finite/);
 });
