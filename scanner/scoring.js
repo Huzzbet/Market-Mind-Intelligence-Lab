@@ -49,3 +49,25 @@ export function validateObservation(observation) {
   if (age < -5 * 60_000) errors.push('Observation timestamp is in the future');
   return errors;
 }
+
+/**
+ * Generic timestamp freshness check. The caller must set maxAgeMs to match
+ * the provider's feed type and exchange session; "fresh" does not mean real-time.
+ */
+export function classifyFreshness(observation, { now = Date.now(), maxAgeMs = 60 * 60_000 } = {}) {
+  if (!observation?.asOf || Number.isNaN(Date.parse(observation.asOf))) {
+    return { status: 'unavailable', ageMs: null, reason: 'Missing or invalid timestamp' };
+  }
+  const asOf = Date.parse(observation.asOf);
+  const ageMs = now - asOf;
+  if (ageMs < -5 * 60_000) {
+    return { status: 'unavailable', ageMs, reason: 'Timestamp is in the future' };
+  }
+  if (!Number.isFinite(maxAgeMs) || maxAgeMs < 0) {
+    throw new TypeError('maxAgeMs must be a non-negative finite number');
+  }
+  if (ageMs > maxAgeMs) {
+    return { status: 'stale', ageMs, reason: 'Observation exceeds configured freshness threshold' };
+  }
+  return { status: 'within-threshold', ageMs, reason: 'Timestamp is within configured threshold; feed entitlement still must be verified' };
+}
