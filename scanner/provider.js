@@ -4,7 +4,7 @@
  * Never import it into browser code and never expose TWELVE_DATA_API_KEY.
  */
 export function createTwelveDataProvider({
-  apiKey = process.env.TWELVE_DATA_API_KEY,
+  apiKey,
   fetchImpl = fetch,
   baseUrl = "https://api.twelvedata.com",
   now = () => new Date(),
