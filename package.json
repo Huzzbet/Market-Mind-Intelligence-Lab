@@ -1,0 +1,10 @@
+{
+  "name": "market-mind-intelligence-lab",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Isolated prototype for transparent market opportunity research",
+  "scripts": {
+    "test": "node --test scanner/*.test.js"
+  }
+}
